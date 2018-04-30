@@ -88,6 +88,7 @@ char** get_tokens(char *string, const char delimiter){
 	if (num_tokens == 0){
 		return NULL;
 	}
+	//printf("%d\n",num_tokens);
 	token_array = malloc(sizeof(char*) * num_tokens);
 	size_t ind = 0;
 	token = strtok_r(string, &delimiter, &saveptr);

@@ -72,7 +72,6 @@ int netopen(const char *filepath, int flags){
 	}
 	if(server == NULL){ //if server is not initialized properly
 		h_errno = HOST_NOT_FOUND;
-		error("");
 		return -1;
 	}
 	
@@ -110,7 +109,6 @@ ssize_t netread(int fildes, void *buf, size_t nbyte){
 	}
 	if(server == NULL){ //if server is not initialized properly
 		h_errno = HOST_NOT_FOUND;
-		error("");
 		return -1;
 	}
 	
@@ -151,7 +149,6 @@ ssize_t netwrite(int fildes, const void *buf, size_t nbyte){
 	}
 	if(server == NULL){ //if server is not initialized properly
 		h_errno = HOST_NOT_FOUND;
-		error("");
 		return -1;
 	}
 	
@@ -191,7 +188,6 @@ int netclose(int fd){
 	}
 	if(server == NULL){ //if server is not initialized properly
 		h_errno = HOST_NOT_FOUND;
-		error("");
 		return -1;
 	}
 	

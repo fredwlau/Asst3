@@ -65,7 +65,7 @@ char** tokenize(char* str, const char delim, int* num_tokens){
 
 int count_tokens(char *string, const char delim){
 	char *temp = string;
-	int n;
+	int n = 0;
 	
 	printf("COUNTING :%s\n",string);
 	
@@ -80,13 +80,12 @@ int count_tokens(char *string, const char delim){
 
 char** get_tokens(char *string, const char delimiter){
 	int num_tokens;
-	char delims[2];
 	char *token = NULL;
 	char * saveptr;
 	char **token_array = NULL;
 	
 	num_tokens =count_tokens(string, delimiter);
-	if (num_tokens == NULL){
+	if (num_tokens == 0){
 		return NULL;
 	}
 	token_array = malloc(sizeof(char*) * num_tokens);

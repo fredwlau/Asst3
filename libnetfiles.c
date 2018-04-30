@@ -13,7 +13,6 @@
 
 static struct hostent *server = NULL;
 static struct sockaddr_in serv_addr;
-static const int buf_size = BUF_SIZE;
 static int f_mode = -1;
 
 void error(const char *msg)
@@ -38,179 +37,190 @@ int netserverinit(char* hostname, int filemode){
 	return 0;
 }
 
-int start_session(int *sockfd){
-	*sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if(*sockfd < 0){
+int start_session(int * connected){
+	int socket_fildes = socket(AF_INET, SOCK_STREAM, 0);
+	if(socket_fildes < 0){
+		*connected = -1;
 		error("ERROR opening socket");
 	}
 	if(server == NULL){
+		*connected = -1;
 		error("Host not set\n");
 	}
-	if (connect(*sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0){
+	if (connect(socket_fildes,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0){
+		*connected = -1;
 		error("ERROR connecting");
 	}
 	printf("Socket connection established!\n");
-	return 0;	
+	*connected = 0;
+	return socket_fildes;
 }
-int end_session(int *sockfd){
+int end_session(int sockfd){
 	printf("Socket connection closed!\n");
-	close(*sockfd);
+	close(sockfd);
 	return 0;
 }
-int netopen(const char *pathname, int flags){
-	char buf[buf_size];
-	char ** tokens;
-	int sockfd;
-	int status;
-	int num_tokens;
-	int fd = -1;	
-	ssize_t n;
-
-	status = start_session(&sockfd);
-	if(status){
-		error("Socket Error");
+int netopen(const char *filepath, int flags){
+	char buffer[BUF_SIZE];
+	int sfd; //socket fildes after we start a session
+	int not_connected;
+	int fd = -1;
+	
+	sfd = start_session(&not_connected);
+	if(not_connected){ //if we cannot connect to the socket
+		error("Socket ERROR");
 	}
-	if(server == NULL){
+	if(server == NULL){ //if server is not initialized properly
 		h_errno = HOST_NOT_FOUND;
+		error("");
 		return -1;
 	}
-	/* Concatenate parameters of netopen */
-	memset(buf, 0, sizeof(buf));
-	snprintf(buf, sizeof(buf), "open,%d,%s,%d", f_mode, pathname, flags);
-	/* Send message to socket */
-	n = send(sockfd, buf, buf_size, 0);
-	memset(buf, 0, sizeof(buf));
-	n = recv(sockfd, buf, buf_size, 0);
-	num_tokens = count_tokens(buf,',');
-	tokens = get_tokens(buf, ',');
-	printf("NUM TOKENS=%d\n", num_tokens);
-	assert(num_tokens == 2);
-	status = atoi(tokens[0]);
-	if(status == -1){
-		errno = atoi(tokens[1]);
-	}
-	else
-	if(status == 0){
-		fd = atoi(tokens[1]);	
-	}	
-	end_session(&sockfd);
-	return fd;		
-}
-ssize_t netread(int fildes, void *data_buf, size_t nbytes){
-	char buf[buf_size];
-	int sockfd, status;
+	
+	/*PRELIMINARY CHECKS COMPLETED*/
+	
 	char **tokens;
-	int n, num_tokens, fd = -1;	
-	ssize_t nbytes_read = -1;
-
-	status = start_session(&sockfd);
-	if(status != 0){
-		error("Socket Error");
-	}
-	if(server == NULL){
-		h_errno = HOST_NOT_FOUND;
-		return -1;
-	}
-
-	fd = fildes;
-	/* Concatenate parameters of netread */
-	bzero(buf, sizeof(buf));
-	snprintf(buf, sizeof(buf), "read,%d,%d,%ld", f_mode, fd, nbytes);
-	/* Send message to socket */
-	n = send(sockfd, buf, buf_size, 0);
-	bzero(buf, sizeof(buf));
-	n = recv(sockfd, buf, buf_size, 0);
-	tokens = tokenize(buf, '\x1F', &num_tokens);
-	assert(num_tokens >= 2);	
-	status = atoi(tokens[0]);
-	if(status == -1){
-		assert(num_tokens == 2);
+	//char count; to test the returned messages from the server for recv
+	
+	memset(buffer, 0, sizeof(buffer)); //zero out the buffer to make behavior predictable
+	snprintf(buffer, sizeof(buffer), "open\x1F%d\x1F%s\x1F%d", f_mode, filepath, flags); //command to send to socket
+	send(sfd, buffer, BUF_SIZE, 0); //send command to socket
+	
+	memset(buffer, 0, sizeof(buffer)); //zero out buffer to receive message
+	recv(sfd, buffer, BUF_SIZE, 0);
+	tokens = get_tokens(buffer, '\x1F'); //tokenize rturned message, comes in the form [-1/0],[errno/fd]
+	
+	if(atoi(tokens[0])){ //if tokens[0] is nonzero, the second token is sent as the errno
 		errno = atoi(tokens[1]);
 	}
-	else
-	if(status == 0){
-		assert(num_tokens >= 3);
-		nbytes_read = atoi(tokens[1]);	
-		if(tokens[2] != NULL){
-			strcpy(data_buf, tokens[2]);
-		}
-	}	
-	end_session(&sockfd);
-	return nbytes_read;	
+	else{ //if tokens[0] is zero, the second token will be the fildes
+		fd = atoi(tokens[1]);
+	}
+	end_session(sfd);
+	return fd;
 }
-ssize_t netwrite(int fildes, const void *data_buf, size_t nbytes){
-	char buf[buf_size];
-	int sockfd, status;
-	char **tokens;
-	int n, num_tokens, fd = -1;	
-	ssize_t nbytes_written = -1;
-
-	status = start_session(&sockfd);
-	if(status != 0){
-		error("Socket Error");
+ssize_t netread(int fildes, void *buf, size_t nbyte){
+	char buffer[BUF_SIZE];
+	int sfd; //socket fildes after we start a session
+	int not_connected;
+	int fd = fildes; //file descriptor of the opened file we wish to read
+	
+	sfd = start_session(&not_connected);
+	if(not_connected){ //if we cannot connect to the socket
+		error("Socket ERROR");
 	}
-	if(server == NULL){
+	if(server == NULL){ //if server is not initialized properly
 		h_errno = HOST_NOT_FOUND;
+		error("");
 		return -1;
 	}
-
-	fd = fildes;
-	/* Concatenate parameters of netread */
-	bzero(buf, sizeof(buf));
-	snprintf(buf, sizeof(buf), "write,%d,%d,%ld,%s", f_mode, fd, nbytes, (char*)data_buf);
-	/* Send message to socket */
-	n = send(sockfd, buf, buf_size, 0);
-	bzero(buf, sizeof(buf));
-	n = recv(sockfd, buf, buf_size, 0);
-	tokens = tokenize(buf, ',', &num_tokens);
-	assert(num_tokens == 2);	
-	status = atoi(tokens[0]);
-	if(status == -1){
+	
+	/*PRELIMINARY CHECKS COMPLETED*/
+	
+	char **tokens;
+	ssize_t bytes_read = -1; //if errors have occurred, -1 is returned
+	//char count; to test the returned messages from the server for recv
+	
+	memset(buffer, 0, sizeof(buffer)); //zero out the buffer to make behavior predictable
+	snprintf(buffer, sizeof(buffer), "read\x1F%d\x1F%d\x1F%ld", f_mode, fd, nbyte); //command to send to socket
+	
+	send(sfd, buffer, BUF_SIZE, 0); //send command to socket
+	
+	memset(buffer, 0, sizeof(buffer)); //zero out buffer to receive message
+	recv(sfd, buffer, BUF_SIZE, 0);
+	
+	tokens = get_tokens(buffer, '\x1F'); //tokenize returned message, comes in the form [-1/0],[errno/nbytes_read],[\0,data]
+	if(atoi(tokens[0])){ //if tokens[0] is nonzero, the second token is sent as the errno
 		errno = atoi(tokens[1]);
 	}
-	else
-	if(status == 0){
-		nbytes_written = atoi(tokens[1]);	
-	}	
-	end_session(&sockfd);
-	return nbytes_written;	
+	else{ //if tokens[0] is zero, the second token will be the number of bytes read, the third will be the read data
+		bytes_read = atoi(tokens[1]);
+		strcpy(buf, tokens[2]);
+	}
+	end_session(sfd);
+	return fd;
+}
+ssize_t netwrite(int fildes, const void *buf, size_t nbyte){
+	char buffer[BUF_SIZE];
+	int sfd; //socket fildes after we start a session
+	int not_connected;
+	int fd = fildes; //file descriptor of the opened file we wish to read
+	
+	sfd = start_session(&not_connected);
+	if(not_connected){ //if we cannot connect to the socket
+		error("Socket ERROR");
+	}
+	if(server == NULL){ //if server is not initialized properly
+		h_errno = HOST_NOT_FOUND;
+		error("");
+		return -1;
+	}
+	
+	/*PRELIMINARY CHECKS COMPLETED*/
+	
+	char **tokens;
+	ssize_t bytes_written = -1; //if errors have occurred, -1 is returned
+	//char count; to test the returned messages from the server for recv
+	
+	memset(buffer, 0, sizeof(buffer)); //zero out the buffer to make behavior predictable
+	snprintf(buffer, sizeof(buffer), "write\x1F%d\x1F%d\x1F%ld\x1F%s", f_mode, fd, nbyte, (char*)buf); //command to send to socket
+	
+	send(sfd, buffer, BUF_SIZE, 0); //send command to socket
+	
+	memset(buffer, 0, sizeof(buffer)); //zero out buffer to receive message
+	recv(sfd, buffer, BUF_SIZE, 0);
+	
+	tokens = get_tokens(buffer, '\x1F'); //tokenize returned message, comes in the form [-1/0],[errno/bytes_written]
+	if(atoi(tokens[0])){ //if tokens[0] is nonzero, the second token is sent as the errno
+		errno = atoi(tokens[1]);
+	}
+	else{ //if tokens[0] is zero, the second token will be the number of bytes read, the third will be the read data
+		bytes_written = atoi(tokens[1]);
+	}
+	end_session(sfd);
+	return bytes_written;
 }
 
 int netclose(int fd){
-	char buf[buf_size];
-	int sockfd, status;
-	char **tokens;
-	int n, num_tokens;	
-
-	status = start_session(&sockfd);
-	if(status != 0){
-		error("Socket Error");
+	char buffer[BUF_SIZE];
+	int sfd; //socket fildes after we start a session
+	int not_connected;
+	
+	sfd = start_session(&not_connected);
+	if(not_connected){ //if we cannot connect to the socket
+		error("Socket ERROR");
 	}
-	if(server == NULL){
+	if(server == NULL){ //if server is not initialized properly
 		h_errno = HOST_NOT_FOUND;
+		error("");
 		return -1;
 	}
-	/* Concatenate parameters of netclose */
-	bzero(buf, sizeof(buf));
-	snprintf(buf, sizeof(buf), "close,%d,%d", f_mode, fd);
-	/* Send message to socket */
-	n = send(sockfd, buf, buf_size, 0);
-	bzero(buf, sizeof(buf));
-	n = recv(sockfd, buf, buf_size, 0);
-	tokens = tokenize(buf, ',', &num_tokens);
-	assert(num_tokens == 2 || num_tokens == 1);	
-	status = atoi(tokens[0]);
-	if(status == -1){
+	
+	/*PRELIMINARY CHECKS COMPLETED*/
+	
+	char **tokens;
+	//char count; to test the returned messages from the server for recv
+	
+	memset(buffer, 0, sizeof(buffer)); //zero out the buffer to make behavior predictable
+	snprintf(buffer, sizeof(buffer), "close\x1F%d\x1F%d", f_mode, fd); //command to send to socket
+	
+	send(sfd, buffer, BUF_SIZE, 0); //send command to socket
+	
+	memset(buffer, 0, sizeof(buffer)); //zero out buffer to receive message
+	recv(sfd, buffer, BUF_SIZE, 0);
+	
+	tokens = get_tokens(buffer, '\x1F'); //tokenize returned message, comes in the form [-1/0],[errno/NULL]
+	if(atoi(tokens[0])){ //if tokens[0] is nonzero, the second token is sent as the errno
 		errno = atoi(tokens[1]);
 	}
-	end_session(&sockfd);
-	return status;	
+	
+	end_session(sfd);
+	return atoi(tokens[0]);
 }
 
 int main(int argc, char *argv[])
 {
 	int fd, status;
-	char buffer[buf_size];
+	char buffer[BUF_SIZE];
 	size_t nbytes = 100;
 	ssize_t nbytes_read, nbytes_written;
 

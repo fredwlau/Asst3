@@ -44,8 +44,8 @@ int server_open(char** tokens, const int num_tokens, char* msg){
 	}
 	else{
 		sprintf(msg, "%d\x1F%d", SUCCESS_RET, -fd);
-		fds[num_files] = -fd;
-		modes[num_files] = flag;			
+		fds[connections] = -fd;
+		modes[connections] = flag;			
 		connections++;
 	}
 	return 0;
@@ -125,7 +125,7 @@ int server_close(char** tokens, const int num_tokens, char* msg){
 	/*assert(strcmp(tokens[0], "close") == 0);
 	assert(num_tokens == 3);*/
 	//fd = atoi(tokens[2]);
-	for(i = 0; i < num_files; ++i){
+	for(i = 0; i < connections; ++i){
 		if(fds[i] == fd){
 			valid = 1;
 			fds[i] = 0;

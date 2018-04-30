@@ -94,7 +94,7 @@ int server_open(char ** tokens, const int num_tokens, char * msg){
 	printf("Opening file path %s\n", tokens[2]);
 	char * pathname = tokens[2];
 	int flag = atoi(tokens[3]);
-	int fd = open(path, flag);
+	int fd = open(pathname, flag);
 	int mode;
 	
 	/*assert(strcmp(tokens[0], "open") == 0);*/
@@ -257,7 +257,7 @@ void * threaded(void * fd) {
 	/* Tokenize massage */
     num_tokens = count_tokens(buffer, '\x1f');
     tokens = get_tokens(buffer, '\x1f');
-    char * op = tokens[0]
+    char op = *tokens[0];
 	//tokens = tokenize(buffer, ',', &num_tokens); 
 	/*if(strcmp(tokens[0], "open")==0){
 		printf("processing open request1\n");
@@ -283,22 +283,22 @@ void * threaded(void * fd) {
 	int ExtAmode = atoi(tokens[1]);
 	if(ExtAmode == 1){
 		switch(op){
-			case 'open':
+			case 'o':
 				//anyone can open
 				printf("Processing open...\n");
 				server_open(tokens, num_tokens, msg);
 			
-			case 'read':
+			case 'r':
 				//anyone can read
 				printf("Processing read...\n");
 				server_read(tokens, num_tokens, msg);
-			case 'write':
+			case 'w':
 				//anyone can write
-				printf("Processing write...\n")
+				printf("Processing write...\n");
 				server_write(tokens, num_tokens, msg);
-			case 'close':
+			case 'c':
 				//anyone can close
-				printf("Processing close...\n")
+				printf("Processing close...\n");
 				server_close(tokens, num_tokens, msg);
 			default:
 				errno = INVALID_OPERATION_MODE;
@@ -308,21 +308,21 @@ void * threaded(void * fd) {
 	}
 	if(ExtAmode == 2){
 		switch(op){
-			case 'open':
+			case 'o':
 				//anyone can open
 				printf("Processing open...\n");
 				server_open(tokens, num_tokens, msg);
-			case 'read':
+			case 'r':
 				//anyone can read
 				printf("Processing read...\n");
 				server_read(tokens, num_tokens, msg);
-			case 'write':
+			case 'w':
 				//some logic here to check if file is currently opened in write mode
-				printf("Processing write...\n")
+				printf("Processing write...\n");
 				server_write(tokens, num_tokens, msg);
-			case 'close':
+			case 'c':
 				//anyone can close
-				printf("Processing close...\n")
+				printf("Processing close...\n");
 				server_close(tokens, num_tokens, msg);
 			default:
 				errno = INVALID_OPERATION_MODE;
@@ -332,21 +332,21 @@ void * threaded(void * fd) {
 	}
 	if(ExtAmode == 3){
 		switch(op){
-			case 'open':
+			case 'o':
 				//check to see if file is opened by anyone else
 				printf("Processing open...\n");
 				server_open(tokens, num_tokens, msg);
-			case 'read':
+			case 'r':
 				//check to see if file is opened by anyone else
 				printf("Processing read...\n");
 				server_read(tokens, num_tokens, msg);
-			case 'write':
+			case 'w':
 				//check to see if file is opened by anyone else
-				printf("Processing write...\n")
+				printf("Processing write...\n");
 				server_write(tokens, num_tokens, msg);
-			case 'close':
+			case 'c':
 				//only one can close
-				printf("Processing close...\n")
+				printf("Processing close...\n");
 				server_close(tokens, num_tokens, msg);
 			default:
 				errno = INVALID_OPERATION_MODE;
@@ -409,7 +409,7 @@ void * threaded(void * fd) {
 }*/
 
 int main(int argc, char * argv[]){
-	int sockfd
+	int sockfd;
 	int newsockfd;
 	long portnumber = PORTNUM;
     socklen_t clilen;
@@ -425,7 +425,7 @@ int main(int argc, char * argv[]){
     bzero((char *) &serv_addr, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(portnum);
+    serv_addr.sin_port = htons(portnumber);
     if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0){
     	error("ERROR on binding");
     }

@@ -13,8 +13,9 @@
 #define PORTNUM 2e14
 #define NUM_CLIENT 5
 static int buf_size = BUF_SIZE;
-static int fds[10];
-static int modes[10];
+static int FDES[10];
+static int FMODES[10];
+static int FFLAGS[10];
 static int connections = 0;
 
 void error(const char *msg)
@@ -44,8 +45,9 @@ int server_open(char** tokens, const int num_tokens, char* msg){
 	}
 	else{
 		sprintf(msg, "%d\x1F%d", SUCCESS_RET, -fd);
-		fds[connections] = -fd;
-		modes[connections] = flag;			
+		FDES[connections] = -fd;
+		FMODES[connections] = mode;
+		FFLAGS[connections] = flag;			
 		connections++;
 	}
 	return 0;
@@ -128,8 +130,9 @@ int server_close(char** tokens, const int num_tokens, char* msg){
 	for(i = 0; i < connections; ++i){
 		if(fds[i] == fd){
 			valid = 1;
-			fds[i] = 0;
-			modes[i] = 0;
+			FDES[i] = 0;
+			FMODES[i] = 0;
+			FFLAGS[i] = 0;
 			break;
 		}
 	}

@@ -17,79 +17,12 @@ static int fds[10];
 static int modes[10];
 static int num_files = 0;
 
-typedef struct multi_connection_conf{
-	int connection_number;
-	int port_number[]; 
-} multi_connection_conf;
-
-
-//Queue - Linked List implementation
-struct Node {
-	char* data;
-	struct Node* next;
-};
-// Two glboal variables to store address of front and rear nodes. 
-struct Node* front = NULL;
-struct Node* rear = NULL;
-
-// To Enqueue an operation
-void Enqueue(char* x) {
-	printf("enqueue\n");
-	struct Node* temp = 
-		(struct Node*)malloc(sizeof(struct Node));
-	temp->data =x; 
-	temp->next = NULL;
-	if(front == NULL && rear == NULL){
-		front = rear = temp;
-		return;
-	}
-	rear->next = temp;
-	rear = temp;
-}
-
-// To Dequeue an opertion
-void Dequeue() {
-	printf("dequeue\n");
-	struct Node* temp = front;
-	if(front == NULL) {
-		printf("Queue is Empty\n");
-		return;
-	}
-	if(front == rear) {
-		front = rear = NULL;
-	}
-	else {
-		front = front->next;
-	}
-	free(temp);
-}
-//put to front
-void PutToFront(char* x){
-	printf("puttofront\n");
-	struct Node* temp = 
-		(struct Node*)malloc(sizeof(struct Node));
-	temp->data =x; 
-	temp->next = front;
-	if(front == NULL && rear == NULL){
-		front = rear = temp;
-		return;
-	}
-	front = temp;
-}
-
-struct file_metadata{
-	char path[50];
-	int  fds[5];
-	int  modes[5];
-	int  permission[5];
-};
-
 void error(const char *msg)
 {
     perror(msg);
     exit(1);
 }
-int f_open(char** tokens, const int num_tokens, char* msg){
+int server_open(char** tokens, const int num_tokens, char* msg){
 	printf("f_open\n");
 	char* path;
 	int flag;
@@ -117,7 +50,7 @@ int f_open(char** tokens, const int num_tokens, char* msg){
 	}
 	return 0;
 }
-int f_read(char** tokens, const int num_tokens, char* msg){
+int server_read(char** tokens, const int num_tokens, char* msg){
 	printf("f_read\n");
 	int fd;
 	size_t nbytes;
@@ -149,7 +82,7 @@ int f_read(char** tokens, const int num_tokens, char* msg){
 	}
 	return 0;
 }
-int f_write(char** tokens, const int num_tokens, char* msg){
+int server_write(char** tokens, const int num_tokens, char* msg){
 	printf("f_write\n");
 	int fd;
 	size_t nbytes;
@@ -180,7 +113,7 @@ int f_write(char** tokens, const int num_tokens, char* msg){
 	}
 	return 0;
 }
-int f_close(char** tokens, const int num_tokens, char* msg){
+int server_close(char** tokens, const int num_tokens, char* msg){
 	printf("f_close\n");
 	int fd;
 	int status = -1;
@@ -212,7 +145,7 @@ int f_close(char** tokens, const int num_tokens, char* msg){
 	}
 	return 0;
 }
-void* process(void* fd) 
+void* threaded(void* fd) 
 {
 	int newsockfd; 
 	int status, num_tokens;
@@ -230,22 +163,22 @@ void* process(void* fd)
 	//tokens = tokenize(buffer, ',', &num_tokens); 
 	if(strcmp(tokens[0], "open")==0){
 		printf("processing open request1\n");
-		f_open(tokens, num_tokens, msg);	
+		server_open(tokens, num_tokens, msg);	
 	}
 	else
 	if(strcmp(tokens[0], "read")==0){
 		printf("processing read request1\n");
-		f_read(tokens, num_tokens, msg);
+		server_read(tokens, num_tokens, msg);
 	}
 	else
 	if(strcmp(tokens[0], "write")==0){
 		printf("processing write request1\n");
-		f_write(tokens, num_tokens, msg);
+		server_write(tokens, num_tokens, msg);
 	}
 	else
 	if(strcmp(tokens[0], "close")==0){
 		printf("processing close request1\n");
-		f_close(tokens, num_tokens, msg);
+		server_close(tokens, num_tokens, msg);
 	}
 	else{
 		errno = INVALID_OPERATION_MODE;
@@ -258,51 +191,6 @@ void* process(void* fd)
    	if (status < 0) error("ERROR writing to socket");		
 	return 0;
 }
-
-/*void* process_queue(void* fd) 
-{
-	printf("process_queue\n");
-	int newsockfd; 
-	int status, num_tokens;
-	char buffer[buf_size];
-	char msg[buf_size];
-	char** tokens;
-
-	newsockfd = *(int*)fd;
-    bzero(buffer, buf_size);
-	status = read(newsockfd, buffer, buf_size);
-    if (status < 0) error("ERROR reading from socket");
-	tokens = tokenize(buffer, ',', &num_tokens); 
-	if(strcmp(tokens[0], "open") == 0){
-		printf("processing open request2\n");
-		f_open(tokens, num_tokens, msg);
-	}
-	else
-	if(strcmp(tokens[0], "read") == 0){
-		printf("processing read request2\n");
-		f_read(tokens, num_tokens, msg);
-	}
-	else
-	if(strcmp(tokens[0], "write") == 0){
-		printf("processing write request2\n");
-		f_write(tokens, num_tokens, msg);
-	}
-	else
-	if(strcmp(tokens[0], "close") == 0){
-		printf("processing close request2\n");
-		f_close(tokens, num_tokens, msg);
-	}
-	else{
-		errno = INVALID_OPERATION_MODE;
-		fprintf(stderr, "Invalid request type: %s\n", tokens[0]);	
-		sprintf(msg, "%d,%d", FAILURE_RET, errno);
-	}
-	bzero(buffer, buf_size);
-	strcpy(buffer, msg);		
-   	status = write(newsockfd, buffer, sizeof(buffer));
-   	if (status < 0) error("ERROR writing to socket");		
-	return 0;
-}*/
 
 int main(int argc, char *argv[])
 {
@@ -332,7 +220,7 @@ int main(int argc, char *argv[])
 		printf("Server Port: %hu\n", serv_addr.sin_port);
 		printf("Client Port: %hu\n", cli_addr.sin_port);
 		if(pthread_create(&client_thread, 
-		   NULL, process, (void*)&newsockfd) < 0){
+		   NULL, threaded, (void*)&newsockfd) < 0){
 			perror("Thread creation failed");
 			return -1;
 		}	

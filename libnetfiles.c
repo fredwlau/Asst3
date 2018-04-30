@@ -87,7 +87,7 @@ int netopen(const char *filepath, int flags){
 	
 	memset(buffer, 0, sizeof(buffer)); //zero out buffer to receive message
 	recv(sfd, buffer, BUF_SIZE, 0);
-	tokens = get_tokens(buffer, '\x1F'); //tokenize rturned message, comes in the form [-1/0],[errno/fd]
+	tokens = get_tokens(buffer, 31); //tokenize rturned message, comes in the form [-1/0],[errno/fd]
 	
 	if(atoi(tokens[0])){ //if tokens[0] is nonzero, the second token is sent as the errno
 		errno = atoi(tokens[1]);
@@ -128,7 +128,7 @@ ssize_t netread(int fildes, void *buf, size_t nbyte){
 	memset(buffer, 0, sizeof(buffer)); //zero out buffer to receive message
 	recv(sfd, buffer, BUF_SIZE, 0);
 	
-	tokens = get_tokens(buffer, '\x1F'); //tokenize returned message, comes in the form [-1/0],[errno/nbytes_read],[\0,data]
+	tokens = get_tokens(buffer, 31); //tokenize returned message, comes in the form [-1/0],[errno/nbytes_read],[\0,data]
 	if(atoi(tokens[0])){ //if tokens[0] is nonzero, the second token is sent as the errno
 		errno = atoi(tokens[1]);
 	}
@@ -137,7 +137,7 @@ ssize_t netread(int fildes, void *buf, size_t nbyte){
 		strcpy(buf, tokens[2]);
 	}
 	end_session(sfd);
-	return fd;
+	return bytes_read;
 }
 ssize_t netwrite(int fildes, const void *buf, size_t nbyte){
 	char buffer[BUF_SIZE];
@@ -169,7 +169,7 @@ ssize_t netwrite(int fildes, const void *buf, size_t nbyte){
 	memset(buffer, 0, sizeof(buffer)); //zero out buffer to receive message
 	recv(sfd, buffer, BUF_SIZE, 0);
 	
-	tokens = get_tokens(buffer, '\x1F'); //tokenize returned message, comes in the form [-1/0],[errno/bytes_written]
+	tokens = get_tokens(buffer, 31); //tokenize returned message, comes in the form [-1/0],[errno/bytes_written]
 	if(atoi(tokens[0])){ //if tokens[0] is nonzero, the second token is sent as the errno
 		errno = atoi(tokens[1]);
 	}
@@ -208,7 +208,7 @@ int netclose(int fd){
 	memset(buffer, 0, sizeof(buffer)); //zero out buffer to receive message
 	recv(sfd, buffer, BUF_SIZE, 0);
 	
-	tokens = get_tokens(buffer, '\x1F'); //tokenize returned message, comes in the form [-1/0],[errno/NULL]
+	tokens = get_tokens(buffer, 31); //tokenize returned message, comes in the form [-1/0],[errno/NULL]
 	if(atoi(tokens[0])){ //if tokens[0] is nonzero, the second token is sent as the errno
 		errno = atoi(tokens[1]);
 	}

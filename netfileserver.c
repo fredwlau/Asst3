@@ -255,8 +255,8 @@ void * threaded(void * fd) {
     	error("ERROR reading from socket");
     }
 	/* Tokenize massage */
-    num_tokens = count_tokens(buffer, '\x1f');
-    tokens = get_tokens(buffer, '\x1f');
+    num_tokens = count_tokens(buffer, 31);
+    tokens = get_tokens(buffer, 31);
     char op = *tokens[0];
 	//tokens = tokenize(buffer, ',', &num_tokens); 
 	/*if(strcmp(tokens[0], "open")==0){

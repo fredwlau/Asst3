@@ -60,7 +60,7 @@ int end_session(int sockfd){
 	close(sockfd);
 	return 0;
 }
-int netopen(const char *filepath, int flags){
+int netopen(const char *pathname, int flags){
 	char buffer[BUF_SIZE];
 	int sfd; //socket fildes after we start a session
 	int not_connected;

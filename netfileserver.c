@@ -15,7 +15,7 @@
 static int buf_size = BUF_SIZE;
 static int fds[10];
 static int modes[10];
-static int num_files = 0;
+static int connections = 0;
 
 void error(const char *msg)
 {
@@ -23,21 +23,21 @@ void error(const char *msg)
     exit(1);
 }
 int server_open(char** tokens, const int num_tokens, char* msg){
-	printf("f_open\n");
-	char* path;
-	int flag;
+	printf("Opening file path %s\n", tokens[2]);
+	char * pathname = tokens[2];
+	int flag = atoi(tokens[3]);
 	int fd = -1;
-	int mode;
+	int mode = atoi(tokens[1]);
 	
 	/*assert(strcmp(tokens[0], "open") == 0);*/
-	mode = atoi(tokens[1]);
+	//mode = atoi(tokens[1]);
 	if(mode < 1 || mode > 3){
 		errno = INVALID_FILE_MODE;
 	}
 	else{
-		path = tokens[2];
-		flag = atoi(tokens[3]);
-		fd = open(path, flag);
+		//path = tokens[2];
+		//flag = atoi(tokens[3]);
+		fd = open(pathname, flag);
 	}
 	if(fd < 0){
 		sprintf(msg, "%d\x1F%d", FAILURE_RET, errno);
@@ -46,20 +46,21 @@ int server_open(char** tokens, const int num_tokens, char* msg){
 		sprintf(msg, "%d\x1F%d", SUCCESS_RET, -fd);
 		fds[num_files] = -fd;
 		modes[num_files] = flag;			
-		num_files++;
+		connections++;
 	}
 	return 0;
 }
 int server_read(char** tokens, const int num_tokens, char* msg){
-	printf("f_read\n");
-	int fd;
+	printf("Reading...\n");
+	int fd = atoi(tokens[2]);
 	size_t nbytes;
-	ssize_t nbytes_read = 0;
+	ssize_t bytesRead = 0;
 	char* data;
-	int i, valid;
+	int i;
+	int valid = 0;
 	
 	/*assert(strcmp(tokens[0], "read") == 0);*/
-	fd = atoi(tokens[2]);
+	//fd = atoi(tokens[2]);
 	for(i = 0; i < num_files; ++i){
 		if(fds[i] == fd && modes[i] != O_WRONLY){
 			valid = 1;
@@ -72,26 +73,27 @@ int server_read(char** tokens, const int num_tokens, char* msg){
 	else{
 		nbytes = (size_t)atoi(tokens[3]);
 		data = malloc(nbytes);
-		nbytes_read = read(-fd, (void*)data, nbytes);	
+		bytesRead = read(-fd, (void*)data, nbytes);	
 	}
-	if(nbytes_read == -1){
+	if(bytesRead == -1){
 		sprintf(msg, "%d\x1F%d", FAILURE_RET, errno);
 	}
 	else{
-		sprintf(msg, "%d\x1F%ld\x1F%s", SUCCESS_RET, nbytes_read, data);
+		sprintf(msg, "%d\x1F%ld\x1F%s", SUCCESS_RET, bytesRead, data);
 	}
 	return 0;
 }
 int server_write(char** tokens, const int num_tokens, char* msg){
-	printf("f_write\n");
-	int fd;
+	printf("Writing...\n");
+	int fd = atoi(tokens[2]);
 	size_t nbytes;
-	ssize_t nbytes_written = 0;
-	int i, valid;
+	ssize_t bytesWritten = 0;
+	int i;
+	int valid = 0;
 	
 	/*assert(strcmp(tokens[0], "write") == 0);
 	assert(num_tokens == 5);*/
-	fd = atoi(tokens[2]);
+	//fd = atoi(tokens[2]);
 	for(i = 0; i < num_files; ++i){
 		if(fds[i] == fd && modes[i] != O_RDONLY){
 			valid = 1;
@@ -103,25 +105,26 @@ int server_write(char** tokens, const int num_tokens, char* msg){
 	}
 	else{
 		nbytes = (size_t)atoi(tokens[3]);
-		nbytes_written = write(-fd, (void*)(tokens[4]), nbytes);	
+		bytesWritten = write(-fd, (void*)(tokens[4]), nbytes);	
 	}
-	if(nbytes_written == -1){
+	if(bytesWritten == -1){
 		sprintf(msg, "%d\x1F%d", FAILURE_RET, errno);
 	}
 	else{
-		sprintf(msg, "%d\x1F%ld", SUCCESS_RET, nbytes_written);
+		sprintf(msg, "%d\x1F%ld", SUCCESS_RET, bytesWritten);
 	}
 	return 0;
 }
 int server_close(char** tokens, const int num_tokens, char* msg){
-	printf("f_close\n");
-	int fd;
+	printf("Closing\n");
+	int fd = atoi(tokens[2]);
 	int status = -1;
-	int i, valid;
+	int i;
+	int valid = 0;
 	
 	/*assert(strcmp(tokens[0], "close") == 0);
 	assert(num_tokens == 3);*/
-	fd = atoi(tokens[2]);
+	//fd = atoi(tokens[2]);
 	for(i = 0; i < num_files; ++i){
 		if(fds[i] == fd){
 			valid = 1;

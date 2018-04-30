@@ -81,7 +81,7 @@ int netopen(const char *pathname, int flags){
 	//char count; to test the returned messages from the server for recv
 	
 	memset(buffer, 0, sizeof(buffer)); //zero out the buffer to make behavior predictable
-	snprintf(buffer, sizeof(buffer), "open\x1F%d\x1F%s\x1F%d", f_mode, filepath, flags); //command to send to socket
+	snprintf(buffer, sizeof(buffer), "open\x1F%d\x1F%s\x1F%d", f_mode, pathname, flags); //command to send to socket
 	send(sfd, buffer, BUF_SIZE, 0); //send command to socket
 	
 	memset(buffer, 0, sizeof(buffer)); //zero out buffer to receive message

@@ -61,7 +61,7 @@ int server_read(char** tokens, const int num_tokens, char* msg){
 	
 	/*assert(strcmp(tokens[0], "read") == 0);*/
 	//fd = atoi(tokens[2]);
-	for(i = 0; i < num_files; ++i){
+	for(i = 0; i < connections; ++i){
 		if(fds[i] == fd && modes[i] != O_WRONLY){
 			valid = 1;
 			break;
@@ -94,7 +94,7 @@ int server_write(char** tokens, const int num_tokens, char* msg){
 	/*assert(strcmp(tokens[0], "write") == 0);
 	assert(num_tokens == 5);*/
 	//fd = atoi(tokens[2]);
-	for(i = 0; i < num_files; ++i){
+	for(i = 0; i < connections; ++i){
 		if(fds[i] == fd && modes[i] != O_RDONLY){
 			valid = 1;
 			break;

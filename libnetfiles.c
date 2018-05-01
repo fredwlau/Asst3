@@ -95,6 +95,7 @@ int netopen(const char *pathname, int flags){
 		fd = atoi(tokens[1]);
 	}
 	end_session(sfd);
+	free(tokens);
 	return fd;
 }
 ssize_t netread(int fildes, void *buf, size_t nbyte){
@@ -135,6 +136,7 @@ ssize_t netread(int fildes, void *buf, size_t nbyte){
 		strcpy(buf, tokens[2]);
 	}
 	end_session(sfd);
+	free(tokens);
 	return bytes_read;
 }
 ssize_t netwrite(int fildes, const void *buf, size_t nbyte){
@@ -174,6 +176,7 @@ ssize_t netwrite(int fildes, const void *buf, size_t nbyte){
 		bytes_written = atoi(tokens[1]);
 	}
 	end_session(sfd);
+	free(tokens);
 	return bytes_written;
 }
 
@@ -210,7 +213,9 @@ int netclose(int fd){
 	}
 	
 	end_session(sfd);
-	return atoi(tokens[0]);
+	int retval = atoi(tokens[0]);
+	free(tokens);
+	return retval;
 }
 
 int main(int argc, char *argv[])
@@ -223,7 +228,7 @@ int main(int argc, char *argv[])
 	if(argc < 2){
 		error("Usage: client [hostname]\n");
 	}
-	if(netserverinit(argv[1], UNRES) == -1){
+	if(netserverinit(argv[1], unrestricted) == -1){
 		herror("Init Error");
 		exit(-1);
 	}		

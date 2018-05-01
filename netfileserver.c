@@ -10,7 +10,6 @@
 #include <assert.h>
 #include "libnetfiles.h"
 
-#define PORTNUM 2e14
 #define NUM_CLIENT 5
 static int buf_size = BUF_SIZE;
 static int FDES[10];
@@ -31,6 +30,8 @@ int server_open(char** tokens, const int num_tokens, char* msg){
 	int mode = atoi(tokens[1]);
     int canOperate = 0;
 	
+	fd = open(pathname, flag);
+	
 	/*assert(strcmp(tokens[0], "open") == 0);*/
 	//mode = atoi(tokens[1]);
 	if(mode < 1 || mode > 3){
@@ -45,8 +46,9 @@ int server_open(char** tokens, const int num_tokens, char* msg){
 			for(i=0; i<connections; i++){
 				if(FDES [i] == fd){
 					if(mode == 3){
-						//set errno
+						errno = EACCESS;
 						canOperate = 0;
+						close(fd);
 					}
 					if(FMODES[i] == 1 && mode == 1){
 						//continue with normal open operations
@@ -58,7 +60,9 @@ int server_open(char** tokens, const int num_tokens, char* msg){
 					}
 					if(FMODES[i] == 1 && mode == 2 && (FFLAGS[i] == O_WRONLY || FFLAGS[i] == O_RDWR) && (flag == O_WRONLY || flag == O_RDWR)){
 						//set errno permission denied
+						errno = EACCESS;
 						canOperate = 0;
+						close(fd);
 					}
 					if((FMODES[i] == 2 && FFLAGS[i] == O_RDONLY) && mode != 3 && flag == O_RDONLY){
 						//continue with normal open operations
@@ -66,11 +70,15 @@ int server_open(char** tokens, const int num_tokens, char* msg){
 					}
 					if((FMODES[i] == 2 && (FFLAGS[i] == O_WRONLY || FFLAGS[i] == O_RDWR)) && (flag == O_WRONLY || flag == O_RDWR)){
 						//set errno permission denied
+						errno = EACCESS;
 						canOperate = 0;
+						close(fd);
 					}
 					if((FMODES[i] == 3)){
 						//set errno permission denied
+						errno = EACCESS;
 						canOperate = 0;
+						close(fd);
 					}
 				}
 			}
@@ -86,6 +94,7 @@ int server_open(char** tokens, const int num_tokens, char* msg){
 		fd = open(pathname, flag);
 	
 	    if(fd < 0){
+			printf("%d",errno);
 		    sprintf(msg, "%d\x1F%d", FAILURE_RET, errno);
 	    }
 	    else{
@@ -96,8 +105,7 @@ int server_open(char** tokens, const int num_tokens, char* msg){
 		    connections++;
 	    }
     }
-    else{
-        printf("Error\n");
+    else if(canOperate == 0){
         sprintf(msg, "%d\x1F%d", FAILURE_RET, errno);
     }
 	return 0;
@@ -137,6 +145,7 @@ int server_read(char** tokens, const int num_tokens, char* msg){
 	else{
 		sprintf(msg, "%d\x1F%ld\x1F%s", SUCCESS_RET, bytesRead, data);
 	}
+	free(data);
 	return 0;
 }
 int server_write(char** tokens, const int num_tokens, char* msg){
@@ -181,7 +190,7 @@ int server_close(char** tokens, const int num_tokens, char* msg){
 	/*assert(strcmp(tokens[0], "close") == 0);
 	assert(num_tokens == 3);*/
 	//fd = atoi(tokens[2]);
-	for(i = 0; i < connections; ++i){
+	for(i = 0; i < connections; i++){
 		if(FDES[i] == fd){
 			valid = 1;
 			FDES[i] = 0;
@@ -203,6 +212,7 @@ int server_close(char** tokens, const int num_tokens, char* msg){
 	else{
 		sprintf(msg, "%d", SUCCESS_RET);
 	}
+	connections--;
 	return 0;
 }
 void* threaded(void* fd) 
@@ -248,7 +258,8 @@ void* threaded(void* fd)
 	bzero(buffer, buf_size);
 	strcpy(buffer, msg);		
    	status = send(newsockfd, buffer, buf_size, 0);
-   	if (status < 0) error("ERROR writing to socket");		
+   	if (status < 0) error("ERROR writing to socket");
+	free(tokens);
 	return 0;
 }
 

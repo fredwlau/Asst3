@@ -5,7 +5,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#define PORTNUM 2e14
+#define PORTNUM 17777
 #define BUF_SIZE 4096
 /* Return value */
 #define SUCCESS_RET 0
@@ -13,10 +13,11 @@
 /* Error code */
 #define INVALID_FILE_MODE 5
 #define INVALID_OPERATION_MODE 6
+#define EACCESS 13
 /* File mode */
-#define UNRES 1
-#define EXCLU 2
-#define TRANS 3 
+#define unrestricted 1
+#define exclusive 2
+#define transaction 3
 /* Permission mode */
 
 int netserverinit(char* hostname, int filemode);
@@ -28,7 +29,7 @@ int netclose(int fd);
 
 // How this is different from Just a strtok loop:
 // Uses pointer to num_tokens and str since it maintains these values to read
-char** tokenize(char* str, const char delim, int* num_tokens){
+/*char** tokenize(char* str, const char delim, int* num_tokens){
 	int num;
 	char _delim[2];
 	char *tmp = str;
@@ -61,7 +62,7 @@ char** tokenize(char* str, const char delim, int* num_tokens){
 	}	
 	*num_tokens = num;
 	return tokens;
-}
+}*/
 
 int count_tokens(char *string, const char delim){
 	char *temp = string;

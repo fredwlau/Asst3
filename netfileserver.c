@@ -40,10 +40,14 @@ int server_open(char** tokens, const int num_tokens, char* msg){
         if(connections == 0){
             canOperate = 1;
         }
-        int i;
         else{
+        	int i;
 			for(i=0; i<connections; i++){
 				if(FDES [i] == fd){
+					if(mode == 3){
+						//set errno
+						canOperate = 0;
+					}
 					if(FMODES[i] == 1 && mode == 1){
 						//continue with normal open operations
 						canOperate = 1;
@@ -56,11 +60,7 @@ int server_open(char** tokens, const int num_tokens, char* msg){
 						//set errno permission denied
 						canOperate = 0;
 					}
-					if(FMODES[i] == 1 && mode == 3){
-						//set errno permission denied
-						canOperate = 0;
-					}
-					if((FMODES[i] == 2 && FFLAGS[i] == O_RDONLY) && mode == 1 && flag == O_RDONLY){
+					if((FMODES[i] == 2 && FFLAGS[i] == O_RDONLY) && mode != 3 && flag == O_RDONLY){
 						//continue with normal open operations
 						canOperate = 1;
 					}

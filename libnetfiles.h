@@ -67,7 +67,7 @@ int count_tokens(char *string, const char delim){
 	char *temp = string;
 	int n = 0;
 	
-	printf("COUNTING :%s\n",string);
+	//printf("COUNTING :%s\n",string);
 	
 	while(*temp){
 		if(*temp == delim){
@@ -93,7 +93,7 @@ char** get_tokens(char *string, const char delimiter){
 	size_t ind = 0;
 	token = strtok_r(string, &delimiter, &saveptr);
 	while(token){
-		printf("%s\n",token);
+		//printf("%s\n",token);
 		token_array[ind] = token;
 		token = strtok_r(NULL, &delimiter, &saveptr);
 		ind++;

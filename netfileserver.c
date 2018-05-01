@@ -37,41 +37,42 @@ int server_open(char** tokens, const int num_tokens, char* msg){
 		errno = INVALID_FILE_MODE;
 	}
 	else{
-		int i;
         if(connections == 0){
             canOperate = 1;
         }
-		for(i=0; i<connections; i++){
-			if(FDES [i] == fd){
-				if(FMODES[i] == 1 && mode == 1){
-					//continue with normal open operations
-					canOperate = 1;
+        int i;
+        else{
+			for(i=0; i<connections; i++){
+				if(FDES [i] == fd){
+					if(FMODES[i] == 1 && mode == 1){
+						//continue with normal open operations
+						canOperate = 1;
+					}
+					if(FMODES[i] == 1 && mode == 2 && flag == O_RDONLY){
+						//continue with normal open operations
+						canOperate = 1;
+					}
+					if(FMODES[i] == 1 && mode == 2 && (FFLAGS[i] == O_WRONLY || FFLAGS[i] == O_RDWR) && (flag == O_WRONLY || flag == O_RDWR)){
+						//set errno permission denied
+						canOperate = 0;
+					}
+					if(FMODES[i] == 1 && mode == 3){
+						//set errno permission denied
+						canOperate = 0;
+					}
+					if((FMODES[i] == 2 && FFLAGS[i] == O_RDONLY) && mode == 1 && flag == O_RDONLY){
+						//continue with normal open operations
+						canOperate = 1;
+					}
+					if((FMODES[i] == 2 && (FFLAGS[i] == O_WRONLY || FFLAGS[i] == O_RDWR)) && (flag == O_WRONLY || flag == O_RDWR)){
+						//set errno permission denied
+						canOperate = 0;
+					}
+					if((FMODES[i] == 3)){
+						//set errno permission denied
+						canOperate = 0;
+					}
 				}
-				if(FMODES[i] == 1 && mode == 2 && flag == O_RDONLY){
-					//continue with normal open operations
-					canOperate = 1;
-				}
-				if(FMODES[i] == 1 && mode == 2 && (FFLAGS[i] == O_WRONLY || FFLAGS[i] == O_RDWR) && (flag == O_WRONLY || flag == O_RDWR)){
-					//set errno permission denied
-					canOperate = 0;
-				}
-				if(FMODES[i] == 1 && mode == 3){
-					//set errno permission denied
-					canOperate = 0;
-				}
-				if((FMODES[i] == 2 && FFLAGS[i] == O_RDONLY) && mode == 1 && flag == O_RDONLY){
-					//continue with normal open operations
-					canOperate = 1;
-				}
-				if((FMODES[i] == 2 && (FFLAGS[i] == O_WRONLY || FFLAGS[i] == O_RDWR)) && (flag == O_WRONLY || flag == O_RDWR)){
-					//set errno permission denied
-					canOperate = 0;
-				}
-				if((FMODES[i] == 3)){
-					//set errno permission denied
-					canOperate = 0;
-				}
-
 			}
 		}
 	}

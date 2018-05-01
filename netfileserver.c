@@ -29,15 +29,18 @@ int server_open(char** tokens, const int num_tokens, char* msg){
 	int flag = atoi(tokens[3]);
 	int fd = -1;
 	int mode = atoi(tokens[1]);
+    int canOperate = 0;
 	
 	/*assert(strcmp(tokens[0], "open") == 0);*/
 	//mode = atoi(tokens[1]);
 	if(mode < 1 || mode > 3){
 		errno = INVALID_FILE_MODE;
 	}
-	int canOperate = 0;
-	else if(mode >= 1 && mode<=3){
+	else{
 		int i;
+        if(connections == 0){
+            canOperate = 1;
+        }
 		for(i=0; i<connections; i++){
 			if(FDES [i] == fd){
 				if(FMODES[i] == 1 && mode == 1){
@@ -60,7 +63,7 @@ int server_open(char** tokens, const int num_tokens, char* msg){
 					//continue with normal open operations
 					canOperate = 1;
 				}
-				if((FMODES[i] == 2 && (FFLAGS[i] == O_WRONLY || FFLAGS[i] == O_RDWR) && (flags == O_WRONLY || flags == O_RDWR)){
+				if((FMODES[i] == 2 && (FFLAGS[i] == O_WRONLY || FFLAGS[i] == O_RDWR)) && (flag == O_WRONLY || flag == O_RDWR)){
 					//set errno permission denied
 					canOperate = 0;
 				}
@@ -80,17 +83,22 @@ int server_open(char** tokens, const int num_tokens, char* msg){
 	}*/
 	if(canOperate == 1){
 		fd = open(pathname, flag);
-	}
-	if(fd < 0){
-		sprintf(msg, "%d\x1F%d", FAILURE_RET, errno);
-	}
-	else{
-		sprintf(msg, "%d\x1F%d", SUCCESS_RET, -fd);
-		FDES[connections] = -fd;
-		FMODES[connections] = mode;
-		FFLAGS[connections] = flag;			
-		connections++;
-	}
+	
+	    if(fd < 0){
+		    sprintf(msg, "%d\x1F%d", FAILURE_RET, errno);
+	    }
+	    else{
+		    sprintf(msg, "%d\x1F%d", SUCCESS_RET, -fd);
+		    FDES[connections] = -fd;
+		    FMODES[connections] = mode;
+		    FFLAGS[connections] = flag;			
+		    connections++;
+	    }
+    }
+    else{
+        printf("Error\n");
+        sprintf(msg, "%d\x1F%d", FAILURE_RET, errno);
+    }
 	return 0;
 }
 int server_read(char** tokens, const int num_tokens, char* msg){
@@ -213,22 +221,22 @@ void* threaded(void* fd)
     tokens = get_tokens(buffer, 31);
 	//tokens = tokenize(buffer, ',', &num_tokens); 
 	if(strcmp(tokens[0], "open")==0){
-		printf("processing open request1\n");
+		printf("Processing open request...\n");
 		server_open(tokens, num_tokens, msg);	
 	}
 	else
 	if(strcmp(tokens[0], "read")==0){
-		printf("processing read request1\n");
+		printf("Processing read request...\n");
 		server_read(tokens, num_tokens, msg);
 	}
 	else
 	if(strcmp(tokens[0], "write")==0){
-		printf("processing write request1\n");
+		printf("Processing write request...\n");
 		server_write(tokens, num_tokens, msg);
 	}
 	else
 	if(strcmp(tokens[0], "close")==0){
-		printf("processing close request1\n");
+		printf("Processing close request...\n");
 		server_close(tokens, num_tokens, msg);
 	}
 	else{

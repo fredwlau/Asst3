@@ -64,15 +64,19 @@ int server_read(char** tokens, const int num_tokens, char* msg){
 	/*assert(strcmp(tokens[0], "read") == 0);*/
 	//fd = atoi(tokens[2]);
 	for(i = 0; i < connections; ++i){
-		if(fds[i] == fd && modes[i] != O_WRONLY){
+        printf("Got here\n");
+		if(FDES[i] == fd && FFLAGS[i] != O_WRONLY){
+            printf("File exists...\n");
 			valid = 1;
 			break;
 		}
 	}
 	if(!valid){
+        printf("Error here\n");
 		errno = EBADF;
 	}
 	else{
+        printf("Got here2\n");
 		nbytes = (size_t)atoi(tokens[3]);
 		data = malloc(nbytes);
 		bytesRead = read(-fd, (void*)data, nbytes);	
@@ -97,7 +101,7 @@ int server_write(char** tokens, const int num_tokens, char* msg){
 	assert(num_tokens == 5);*/
 	//fd = atoi(tokens[2]);
 	for(i = 0; i < connections; ++i){
-		if(fds[i] == fd && modes[i] != O_RDONLY){
+		if(FDES[i] == fd && FFLAGS[i] != O_RDONLY){
 			valid = 1;
 			break;
 		}
@@ -128,7 +132,7 @@ int server_close(char** tokens, const int num_tokens, char* msg){
 	assert(num_tokens == 3);*/
 	//fd = atoi(tokens[2]);
 	for(i = 0; i < connections; ++i){
-		if(fds[i] == fd){
+		if(FDES[i] == fd){
 			valid = 1;
 			FDES[i] = 0;
 			FMODES[i] = 0;

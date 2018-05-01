@@ -35,9 +35,50 @@ int server_open(char** tokens, const int num_tokens, char* msg){
 	if(mode < 1 || mode > 3){
 		errno = INVALID_FILE_MODE;
 	}
-	else{
+	int canOperate = 0;
+	else if(mode >= 1 && mode<=3){
+		int i;
+		for(i=0; i<connections; i++){
+			if(FDES [i] == fd){
+				if(FMODES[i] == 1 && mode == 1){
+					//continue with normal open operations
+					canOperate = 1;
+				}
+				if(FMODES[i] == 1 && mode == 2 && flag == O_RDONLY){
+					//continue with normal open operations
+					canOperate = 1;
+				}
+				if(FMODES[i] == 1 && mode == 2 && (FFLAGS[i] == O_WRONLY || FFLAGS[i] == O_RDWR) && (flag == O_WRONLY || flag == O_RDWR)){
+					//set errno permission denied
+					canOperate = 0;
+				}
+				if(FMODES[i] == 1 && mode == 3){
+					//set errno permission denied
+					canOperate = 0;
+				}
+				if((FMODES[i] == 2 && FFLAGS[i] == O_RDONLY) && mode == 1 && flag == O_RDONLY){
+					//continue with normal open operations
+					canOperate = 1;
+				}
+				if((FMODES[i] == 2 && (FFLAGS[i] == O_WRONLY || FFLAGS[i] == O_RDWR) && (flags == O_WRONLY || flags == O_RDWR)){
+					//set errno permission denied
+					canOperate = 0;
+				}
+				if((FMODES[i] == 3)){
+					//set errno permission denied
+					canOperate = 0;
+				}
+
+			}
+		}
+	}
+
+	/*else{
 		//path = tokens[2];
 		//flag = atoi(tokens[3]);
+		fd = open(pathname, flag);
+	}*/
+	if(canOperate == 1){
 		fd = open(pathname, flag);
 	}
 	if(fd < 0){
@@ -64,19 +105,19 @@ int server_read(char** tokens, const int num_tokens, char* msg){
 	/*assert(strcmp(tokens[0], "read") == 0);*/
 	//fd = atoi(tokens[2]);
 	for(i = 0; i < connections; ++i){
-        printf("Got here\n");
+        //printf("Got here\n");
 		if(FDES[i] == fd && FFLAGS[i] != O_WRONLY){
-            printf("File exists...\n");
+            //printf("File exists...\n");
 			valid = 1;
 			break;
 		}
 	}
 	if(!valid){
-        printf("Error here\n");
+        //printf("Error here\n");
 		errno = EBADF;
 	}
 	else{
-        printf("Got here2\n");
+        //printf("Got here2\n");
 		nbytes = (size_t)atoi(tokens[3]);
 		data = malloc(nbytes);
 		bytesRead = read(-fd, (void*)data, nbytes);	
@@ -122,7 +163,7 @@ int server_write(char** tokens, const int num_tokens, char* msg){
 	return 0;
 }
 int server_close(char** tokens, const int num_tokens, char* msg){
-	printf("Closing\n");
+	printf("Closing...\n");
 	int fd = atoi(tokens[2]);
 	int status = -1;
 	int i;
